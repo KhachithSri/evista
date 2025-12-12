@@ -1,0 +1,147 @@
+E-VISTA PROJECT - WORK DISTRIBUTION (4 MEMBERS)
+================================================
+
+MEMBER: mem1 - Backend Core & User/Quiz Domain
+------------------------------------------------
+Primary Ownership (Backend)
+- Auth & User Management
+  - Implement and maintain authentication flow and middleware (verifyToken).
+  - Handle user registration, login, and token-based access control.
+  - Own the User model (User.js), including stats and preferences fields.
+
+- User Dashboard & History
+  - Own /api/user/dashboard in backend/routes/user.js.
+  - Aggregate and return user stats, recentSummaries, recentQuizzes, recentChats, and badges.
+  - Ensure recent summaries and quiz attempts are correctly queried and sorted.
+
+- Quiz Domain (Backend)
+  - Own quiz-related routes in backend/routes/quiz.js.
+  - Implement quiz generation endpoint.
+  - Implement /api/quiz/submit to save QuizAttempt, update user stats, and return results.
+
+- Badge & Stats Integration
+  - Integrate calls to updateUserStats() wherever needed (summary generation, quiz completion, chat usage).
+  - Coordinate with mem2 (who owns badgeService.js) for any changes to stats or badge logic.
+
+Secondary Responsibilities
+- Review backend-related pull requests from mem2 and mem3 that touch user/quiz APIs.
+- Maintain shared middlewares (logging, error handling, basic validation).
+
+================================================
+
+MEMBER: mem2 - AI/ML & Service Layer (Python + Gemini + GPU)
+-------------------------------------------------------------
+Primary Ownership (ML/Services)
+- Whisper Transcription & Audio Processing
+  - Own backend/services/whisper_service_simple.py and other Whisper-related components.
+  - Implement GPU acceleration, device detection (CUDA/MPS/CPU), and performance tuning.
+  - Ensure transcription endpoints correctly call the Python service from Node (transcript.js integration).
+
+- Gemini & Summarization Services
+  - Own:
+    - backend/services/geminiService.js
+    - backend/services/enhancedSummarizer.js
+    - backend/services/visualOnlySummarizer.js
+    - backend/services/audioAnalyzer.js (if present)
+  - Implement and maintain:
+    - Exponential backoff and 429 rate limit handling.
+    - Prompt design and summary formatting.
+
+- Visual Analysis & Duration
+  - Maintain visual analysis and video duration logic:
+    - visualAnalyzer.js
+    - videoDurationChecker.js
+  - Ensure visual-only and enhanced summaries work for various input types.
+
+Secondary Responsibilities
+- Write and maintain ML-related documentation (e.g., GPU_ACCELERATION_SETUP.md and ML sections in COMPLETE_PROJECT_EXPLANATION docs).
+- Help mem1 with performance investigation when issues come from heavy ML pipelines.
+
+================================================
+
+MEMBER: mem3 - Frontend UI/UX (React)
+-------------------------------------
+Primary Ownership (Frontend)
+- Core Pages & Routing
+  - Own main React pages:
+    - TranscriptPage.jsx
+    - QuizPage.jsx
+    - ListenPage.jsx
+    - Auth/landing pages as applicable.
+  - Ensure navigation flow:
+    - Summary → Quiz (/quiz route with dedicated quiz page).
+    - Summary → Listen (audio playback with limited 5 supported languages).
+
+- Profile & History UI
+  - Own ProfilePage.jsx:
+    - Overview, Badges, and History tabs.
+    - Rendering of dashboard.recentSummaries and dashboard.recentQuizzes.
+    - Implementation of the Refresh button to re-fetch dashboard data.
+
+- Shared UI Components
+  - Own frontend/src/components/shared/ProfilePopup.jsx:
+    - Floating profile button and popup layout.
+    - Live stats fetching from /user/dashboard whenever popup is opened.
+    - Visual polish, animations, and responsive behavior.
+
+Secondary Responsibilities
+- Handle frontend error states and loading indicators for all major API calls.
+- Coordinate with mem4 to make the UI testable (stable DOM structure, IDs, predictable flows).
+
+================================================
+
+MEMBER: mem4 - Integration, DevOps, QA & Documentation
+------------------------------------------------------
+Primary Ownership
+- DevOps & Environment Setup
+  - Own project-level tooling and scripts:
+    - Root package.json (monorepo/workspace configuration).
+    - Backend and frontend npm scripts (dev, build, start).
+  - Prepare environment setup instructions (Node, Python, MongoDB, API keys).
+  - If deployed, manage CI/CD pipelines and deployment configuration.
+
+- Testing & Quality Assurance
+  - Create and maintain API test collections (Postman/Insomnia) for:
+    - /api/analyze-video
+    - /api/user/dashboard
+    - /api/quiz/*
+  - Set up and maintain basic automated tests for critical backend logic:
+    - updateUserStats behavior.
+    - /quiz/submit quiz attempt creation and stats update.
+    - /user/dashboard aggregation and history data.
+  - Perform manual end-to-end testing of key flows:
+    - Video → Summary → Quiz → History.
+    - Video → Summary → Listen.
+    - ProfilePopup and ProfilePage stats updating in real time.
+
+- Documentation
+  - Own and maintain:
+    - PROJECT_DOCUMENTATION.txt
+    - COMPLETE_PROJECT_EXPLANATION.md
+    - COMPLETE_PROJECT_EXPLANATION.txt
+  - Keep version numbers, recent modifications, and feature descriptions in sync with the implemented code.
+
+Secondary Responsibilities
+- Implement small glue utilities (e.g., logging helpers, simple frontend helpers) when needed.
+- Coordinate cross-member code reviews and ensure consistent coding standards.
+
+================================================
+
+SHARED RESPONSIBILITIES (ALL MEMBERS)
+------------------------------------
+- Code Reviews
+  - Every feature/bugfix PR must be reviewed by at least one other member.
+  - Suggested pairing:
+    - mem1 ↔ mem3 for user-facing and API integration changes.
+    - mem2 ↔ mem4 for ML, performance, and infra-related changes.
+
+- Bug Fix Rotation
+  - All members participate in regular bug triage.
+  - Bugs are assigned so that no one fixes only their own code; cross-ownership improves code understanding.
+
+- Knowledge Sharing
+  - Short internal demos or docs when modifying complex parts:
+    - mem2 explains GPU and ML pipelines.
+    - mem1 explains stats and badge logic.
+    - mem3 explains routing and major UI flows.
+    - mem4 explains deployment, testing strategy, and documentation structure.

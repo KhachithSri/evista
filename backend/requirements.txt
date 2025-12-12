@@ -1,0 +1,20 @@
+# Whisper transcription with GPU support
+faster-whisper==1.0.3
+torch>=2.0.0  # PyTorch for GPU acceleration (install with CUDA support separately if needed)
+yt-dlp
+
+# Audio analysis for speech detection
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Equation extraction dependencies
+opencv-python>=4.8.0
+pix2tex>=0.1.2
+pytesseract>=0.3.10
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Optional: For CUDA support on Windows/Linux, install:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# For CPU-only (no GPU):
+# pip install torch torchvision torchaudio
