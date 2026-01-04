@@ -36,6 +36,7 @@
 - **Visual Analysis**: AI-powered frame analysis using Gemini Vision
 - **Equation Extraction**: Mathematical equation recognition via Pix2TeX OCR
 - **Smart Summarization**: Multi-modal summaries combining audio + visual content
+- **Timeframe-Based Summarization**: Ability to generate summaries either for the **entire video** or **only a selected time range** (e.g., `00:10:00–00:20:00`), saving time and memory for long videos.
 - **Interactive Learning**: AI chatbot, auto-generated quizzes, and flashcards
 - **User Personalization**: Complete user profiles with progress tracking and achievements
 - **Multi-language Support**: Translation pipeline **designed** for 100+ languages via LibreTranslate, but the `/api/translate` endpoint is a **placeholder** (returns `501 Not Implemented` in this version).
@@ -456,6 +457,11 @@ gsap.to('.logo', {
 - Cleaner UX with dedicated interface
 - Quiz data passed via state from TranscriptPage
 
+**6. Timeframe-Based Summary Range Selector**
+- On `TranscriptPage.jsx`, users can choose between **Entire video** and **Specific time range** before generating a summary.
+- Time ranges are entered in `HH:MM:SS` format (e.g., `00:05:00` to `00:15:00`).
+- When a specific range is selected, the frontend sends `startTime` and `endTime` to the backend and shows an explicit line in the summary indicating that only the **selected timeframe** was analyzed.
+
 ---
 
 ## 🔧 BACKEND IMPLEMENTATION
@@ -507,6 +513,8 @@ Response: {
 - Librosa-based speech detection before transcription
 - Conditional transcription (skip Whisper when audio is likely non-speech)
 - Enhanced summarization (for short videos, transcript + visual frames are fused before calling Gemini)
+- Optional **timeframe-based segment summarization**: if `startTime` and `endTime` are provided, the backend trims the audio with FFmpeg and only transcribes/analyzes that segment.
+- When a segment is analyzed, the returned summary text clearly states: `In the selected timeframe (HH:MM:SS - HH:MM:SS), the video explains the following:` before the main content.
 
 #### 4. **Complete Analysis** (`/api/analyze-video`)
 - All-in-one endpoint
@@ -1018,7 +1026,12 @@ Response: { videos: [...] } // YouTube-only unified educational search
 
 ```
 POST /api/transcript
-Body: { videoUrl, language }
+Body: {
+  videoUrl,
+  language,
+  startTime?, // optional, e.g. "00:05:00" for segment start
+  endTime?    // optional, e.g. "00:15:00" for segment end
+}
 Response: {
   summary,
   transcript,
@@ -1026,7 +1039,8 @@ Response: {
   audioAnalysis,
   language,
   sessionId,
-  summaryId // present when user is authenticated
+  durationSeconds, // total video duration (seconds)
+  summaryId        // present when user is authenticated
 }
 
 POST /api/analyze-video
@@ -1044,6 +1058,10 @@ Response: {
 
 GET /api/transcript/progress/:sessionId
 Response: SSE stream { message, percent }
+
+POST /api/transcript/duration
+Body: { videoUrl }
+Response: { durationSeconds }
 ```
 
 ### Learning Material Endpoints

@@ -38,6 +38,7 @@ Core Capabilities:
 - Visual Analysis: AI-powered frame analysis using Gemini Vision
 - Equation Extraction: Mathematical equation recognition via Pix2TeX OCR
 - Smart Summarization: Multi-modal summaries combining audio + visual content
+- Timeframe-Based Summarization: Ability to summarize either the entire video or only a selected time range (for example, 00:05:00–00:15:00), which saves time and memory for long lectures.
 - Interactive Learning: AI chatbot, auto-generated quizzes, and flashcards
 - User Personalization: Complete user profiles with progress tracking and achievements
 - Multi-language Support: 100+ languages for translation
@@ -385,7 +386,8 @@ App.jsx (Router)
 │   ├── Progress tracking (SSE)
 │   ├── Summary display
 │   ├── Chat interface
-│   └── Quiz/Flashcard buttons
+│   ├── Quiz/Flashcard buttons
+│   └── Timeframe-based summary range selector (entire video vs specific HH:MM:SS range)
 ├── QuizPage.jsx
 │   ├── Question display
 │   ├── Score tracking
@@ -945,8 +947,8 @@ Response: { youtube: [...], vimeo: [...] }
 Video Analysis Endpoints:
 
 POST /api/transcript
-Body: { videoUrl, language }
-Response: { summary, transcript, audioAnalysis, visualContent }
+Body: { videoUrl, language, startTime?, endTime? }
+Response: { summary, transcript, audioAnalysis, visualContent, durationSeconds }
 
 POST /api/analyze-video
 Body: { videoUrl, includeVisualAnalysis, visualOptions }
@@ -954,6 +956,10 @@ Response: { summary, transcript, equations, visualContent }
 
 GET /api/transcript/progress/:sessionId
 Response: SSE stream { message, percent }
+
+POST /api/transcript/duration
+Body: { videoUrl }
+Response: { durationSeconds }
 
 Learning Material Endpoints:
 
