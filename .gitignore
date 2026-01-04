@@ -43,5 +43,11 @@ pip-log.txt
 .pytest_cache/
 .mypy_cache/
 
+# Project-specific large/local assets
+backend/services/whisper_models/
+
+# Temporary outputs
+backend/services/temp/
+
 # Misc
 *.local

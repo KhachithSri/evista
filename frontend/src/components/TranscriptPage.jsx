@@ -2,6 +2,21 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { API_BASE_URL, fetchAPI } from "../api/config";
 
+function formatSecondsToHms(seconds) {
+  if (typeof seconds !== "number" || Number.isNaN(seconds)) return "";
+
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  const hh = String(hours).padStart(2, "0");
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(secs).padStart(2, "0");
+
+  return `${hh}:${mm}:${ss}`;
+}
+
 export default function TranscriptPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -12,6 +27,11 @@ export default function TranscriptPage() {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ message: "", percent: 0 });
   const [selectedLanguage, setSelectedLanguage] = useState("english");
+  const [summaryMode, setSummaryMode] = useState("full"); // 'full' or 'segment'
+  const [segmentStartTime, setSegmentStartTime] = useState("");
+  const [segmentEndTime, setSegmentEndTime] = useState("");
+  const [videoDurationSeconds, setVideoDurationSeconds] = useState(null);
+  const [segmentDefaultsApplied, setSegmentDefaultsApplied] = useState(false);
   
   // AI Chatbot states
   const [chatMessages, setChatMessages] = useState([]);
@@ -26,9 +46,48 @@ export default function TranscriptPage() {
       navigate("/");
       return;
     }
+
+    // Fetch video duration once so we can show it as default range end
+    const fetchDuration = async () => {
+      try {
+        const data = await fetchAPI("/transcript/duration", {
+          method: "POST",
+          body: JSON.stringify({ videoUrl: video.url })
+        });
+
+        if (typeof data.durationSeconds === "number" && !Number.isNaN(data.durationSeconds)) {
+          setVideoDurationSeconds(data.durationSeconds);
+        }
+      } catch (err) {
+        console.error("Failed to fetch video duration:", err);
+      }
+    };
+
+    fetchDuration();
   }, [video, navigate]);
 
+  useEffect(() => {
+    if (
+      summaryMode === "segment" &&
+      videoDurationSeconds != null &&
+      !segmentDefaultsApplied &&
+      !segmentStartTime.trim() &&
+      !segmentEndTime.trim()
+    ) {
+      setSegmentStartTime("00:00:00");
+      setSegmentEndTime(formatSecondsToHms(Math.round(videoDurationSeconds)));
+      setSegmentDefaultsApplied(true);
+    }
+  }, [summaryMode, videoDurationSeconds, segmentDefaultsApplied, segmentStartTime, segmentEndTime]);
+
   const handleGenerateSummary = () => {
+    if (summaryMode === "segment") {
+      if (!segmentStartTime.trim() || !segmentEndTime.trim()) {
+        alert("Please enter both start and end times for the summary range.");
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     setSummary("");
@@ -51,13 +110,25 @@ export default function TranscriptPage() {
       eventSource.close();
     };
 
+    const payload = {
+      videoUrl: video.url,
+      sessionId,
+      language: selectedLanguage
+    };
+
+    if (summaryMode === "segment") {
+      payload.startTime = segmentStartTime;
+      payload.endTime = segmentEndTime;
+    }
+
     fetchAPI("/transcript", {
       method: "POST",
-      body: JSON.stringify({ videoUrl: video.url, sessionId, language: selectedLanguage })
+      body: JSON.stringify(payload)
     })
       .then((data) => {
-        setSummary(data.error ? "" : data.summary);
-        setError(data.error ? (data.details || data.error) : null);
+        const hasError = !!data.error;
+        setSummary(hasError ? "" : data.summary);
+        setError(hasError ? (data.details || data.error) : null);
         setLoading(false);
         eventSource.close();
       })
@@ -174,6 +245,69 @@ export default function TranscriptPage() {
             <option value="telugu">Telugu</option>
             <option value="kannada">Kannada</option>
           </select>
+        </div>
+
+        <div className="panel-section">
+          <h6><i className="fa-solid fa-clock me-2"></i>Summary Range</h6>
+          <div className="form-check">
+            <input
+              className="form-check-input"
+              type="radio"
+              id="summary-range-full"
+              value="full"
+              checked={summaryMode === "full"}
+              onChange={() => setSummaryMode("full")}
+              disabled={loading}
+            />
+            <label className="form-check-label" htmlFor="summary-range-full" style={{ fontSize: '0.85rem' }}>
+              Entire video
+            </label>
+          </div>
+          <div className="form-check mt-1">
+            <input
+              className="form-check-input"
+              type="radio"
+              id="summary-range-segment"
+              value="segment"
+              checked={summaryMode === "segment"}
+              onChange={() => setSummaryMode("segment")}
+              disabled={loading}
+            />
+            <label className="form-check-label" htmlFor="summary-range-segment" style={{ fontSize: '0.85rem' }}>
+              Specific time range
+            </label>
+          </div>
+
+          {summaryMode === "segment" && (
+            <div className="mt-2">
+              <div className="mb-2">
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                  Start time (e.g., 1:30 or 90)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  value={segmentStartTime}
+                  onChange={(e) => setSegmentStartTime(e.target.value)}
+                  placeholder="Start time"
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                  End time (e.g., 3:00 or 180)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  value={segmentEndTime}
+                  onChange={(e) => setSegmentEndTime(e.target.value)}
+                  placeholder="End time"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="d-grid gap-2">
