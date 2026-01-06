@@ -15,6 +15,7 @@ import analyzeRouter from "./routes/analyze.js";
 import authRouter from "./routes/auth.js";
 import userRouter from "./routes/user.js";
 import { initializeBadges } from "./services/badgeService.js";
+import "./models/Video.js";
 
 dotenv.config();
 await connectDatabase();

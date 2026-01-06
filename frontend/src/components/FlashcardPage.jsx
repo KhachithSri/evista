@@ -75,7 +75,7 @@ export default function FlashcardPage() {
   };
 
   return (
-    <div className="app">
+    <div className="app" style={{ gridTemplateColumns: '280px 1fr' }}>
       {/* Left Sidebar */}
       <aside className="card-panel">
         <button

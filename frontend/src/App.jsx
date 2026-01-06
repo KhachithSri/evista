@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import HomePage from "./components/HomePage";
 import TranscriptPage from "./components/TranscriptPage";
 import FlashcardPage from "./components/FlashcardPage";
@@ -13,7 +13,19 @@ import ProfilePopup from "./components/shared/ProfilePopup";
 function App() {
   return (
     <Router>
-      <ProfilePopup />
+      <AppContent />
+    </Router>
+  );
+}
+
+function AppContent() {
+  const location = useLocation();
+  const hiddenPaths = ["/quiz", "/profile", "/flashcards", "/flashcards-summary"];
+  const hideProfilePopup = hiddenPaths.includes(location.pathname);
+
+  return (
+    <>
+      {!hideProfilePopup && <ProfilePopup />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -25,7 +37,7 @@ function App() {
         <Route path="/flashcards" element={<FlashcardPage />} />
         <Route path="/flashcards-summary" element={<FlashcardSummaryPage />} />
       </Routes>
-    </Router>
+    </>
   );
 }
 

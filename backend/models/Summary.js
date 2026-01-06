@@ -9,7 +9,7 @@ const SummarySchema = new mongoose.Schema({
   video: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Video",
-    required: true
+    default: null
   },
   language: {
     type: String,

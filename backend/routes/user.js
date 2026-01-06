@@ -53,6 +53,22 @@ router.get("/dashboard", verifyToken, async (req, res) => {
     // Get badges
     const badges = await getUserBadges(req.userId);
 
+    // Safely handle users that may not yet have a stats subdocument
+    const stats = user.stats || {};
+
+    // Filter out any badges where the populated badge definition is missing
+    const safeBadges = badges
+      .filter(b => b.badge)
+      .map(b => ({
+        id: b._id,
+        code: b.badge.code,
+        name: b.badge.name,
+        description: b.badge.description,
+        icon: b.badge.icon,
+        rarity: b.badge.rarity,
+        awardedAt: b.awardedAt
+      }));
+
     res.json({
       user: {
         id: user._id,
@@ -62,27 +78,19 @@ router.get("/dashboard", verifyToken, async (req, res) => {
         createdAt: user.createdAt
       },
       stats: {
-        summariesGenerated: user.stats.summariesGenerated,
-        quizzesGenerated: user.stats.quizzesGenerated,
-        quizzesCompleted: user.stats.quizzesCompleted,
-        bestQuizScore: user.stats.bestQuizScore,
+        summariesGenerated: stats.summariesGenerated || 0,
+        quizzesGenerated: stats.quizzesGenerated || 0,
+        quizzesCompleted: stats.quizzesCompleted || 0,
+        bestQuizScore: stats.bestQuizScore || 0,
         avgQuizScore,
-        chatQuestionsAsked: user.stats.chatQuestionsAsked,
-        xp: user.stats.xp,
-        streakDays: user.stats.streakDays
+        chatQuestionsAsked: stats.chatQuestionsAsked || 0,
+        xp: stats.xp || 0,
+        streakDays: stats.streakDays || 0
       },
       recentSummaries,
       recentChats,
       recentQuizzes: quizAttempts.slice(0, 5),
-      badges: badges.map(b => ({
-        id: b._id,
-        code: b.badge.code,
-        name: b.badge.name,
-        description: b.badge.description,
-        icon: b.badge.icon,
-        rarity: b.badge.rarity,
-        awardedAt: b.awardedAt
-      }))
+      badges: safeBadges
     });
   } catch (error) {
     console.error("Dashboard fetch error:", error);

@@ -1,4 +1,5 @@
 import express from "express";
+import jwt from "jsonwebtoken";
 import { generateQuizWithGemini } from "../services/geminiService.js";
 import { validateContent, handleError } from "../utils/helpers.js";
 import { verifyToken } from "../middleware/auth.js";
@@ -7,6 +8,7 @@ import QuizAttempt from "../models/QuizAttempt.js";
 import Quiz from "../models/Quiz.js";
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
  * POST /api/quiz
@@ -25,6 +27,24 @@ router.post("/", async (req, res) => {
 
     if (!questions?.length) {
       throw new Error('No questions generated');
+    }
+    // Optionally update stats for authenticated users (quiz generated)
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ") && JWT_SECRET) {
+      const token = authHeader.split(" ")[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.userId;
+      } catch (tokenError) {
+        console.warn("Quiz: Invalid or expired JWT provided while generating quiz. Proceeding without user stats update.");
+      }
+    }
+
+    if (userId) {
+      // Increment count of quizzes generated
+      updateUserStats(userId, { "stats.quizzesGenerated": 1 })
+        .catch(err => console.error("Failed to update quizzesGenerated stat:", err));
     }
 
     res.json({ questions, language: language || 'english', totalQuestions: questions.length });

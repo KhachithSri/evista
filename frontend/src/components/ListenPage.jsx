@@ -41,6 +41,7 @@ export default function ListenPage() {
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [detectedLanguage, setDetectedLanguage] = useState('en');
   const [settingsChanged, setSettingsChanged] = useState(false);
+  const [showCompactControls, setShowCompactControls] = useState(false);
   
   const utteranceRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis);
@@ -230,6 +231,12 @@ export default function ListenPage() {
     );
   };
 
+  const handleMainScroll = (e) => {
+    const scrollTop = e.target.scrollTop || 0;
+    const threshold = 220;
+    setShowCompactControls(scrollTop > threshold);
+  };
+
   return (
     <div className="app" style={{display: 'grid', gridTemplateColumns: '300px 1fr', gap: 0}}>
       {/* Left Sidebar */}
@@ -356,7 +363,7 @@ export default function ListenPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="card-panel">
+      <main className="card-panel" onScroll={handleMainScroll}>
         <div className="d-flex justify-content-between align-items-center mb-4">
           <SplitText
             text="Listen to Summary"
@@ -372,6 +379,73 @@ export default function ListenPage() {
             textAlign="left"
           />
         </div>
+
+        {/* Compact sticky controls when scrolled */}
+        {showCompactControls && (
+          <div
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 5,
+              background: 'white',
+              borderRadius: '12px',
+              padding: '0.75rem 1rem',
+              marginBottom: '1rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem'
+            }}
+          >
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+              {isPlaying && 'Now playing...'}
+              {isPaused && 'Paused'}
+              {!isPlaying && !isPaused && 'Ready to play'}
+            </div>
+            <div className="d-flex gap-2">
+              {!isPlaying && !isPaused && (
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={handlePlay}
+                >
+                  <i className="fa-solid fa-play me-1"></i>
+                  Play
+                </button>
+              )}
+
+              {isPlaying && (
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={handlePause}
+                >
+                  <i className="fa-solid fa-pause me-1"></i>
+                  Pause
+                </button>
+              )}
+
+              {isPaused && (
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={handlePlay}
+                >
+                  <i className="fa-solid fa-play me-1"></i>
+                  Resume
+                </button>
+              )}
+
+              {(isPlaying || isPaused) && (
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={handleStop}
+                >
+                  <i className="fa-solid fa-stop me-1"></i>
+                  Stop
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Audio Player Controls */}
         <div 
@@ -445,39 +519,10 @@ export default function ListenPage() {
             borderRadius: '16px',
             lineHeight: '1.8',
             whiteSpace: 'pre-wrap',
-            fontSize: '1.05rem',
-            maxHeight: 'calc(100vh - 450px)',
-            overflowY: 'auto'
+            fontSize: '1.05rem'
           }}
         >
           {isPlaying || isPaused ? highlightedText() : summary}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-4 d-flex gap-2 justify-content-center flex-wrap">
-          <button
-            className="btn btn-outline-secondary"
-            onClick={downloadAudio}
-          >
-            <i className="fa-solid fa-download me-2"></i>
-            Download Info
-          </button>
-          
-          <button
-            className="btn btn-success"
-            onClick={() => navigate("/quiz", { state: { video, summary, language } })}
-          >
-            <i className="fa-solid fa-question-circle me-2"></i>
-            Take Quiz
-          </button>
-          
-          <button
-            className="btn btn-info"
-            onClick={() => navigate("/flashcards-summary", { state: { video, summary, language } })}
-          >
-            <i className="fa-solid fa-layer-group me-2"></i>
-            Generate Flashcards
-          </button>
         </div>
       </main>
     </div>

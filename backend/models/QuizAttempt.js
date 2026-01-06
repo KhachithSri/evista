@@ -9,7 +9,7 @@ const QuizAttemptSchema = new mongoose.Schema({
   quiz: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Quiz",
-    required: true
+    default: null
   },
   answers: {
     type: [Number],

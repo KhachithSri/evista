@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SplitText from "./SplitText";
+import { fetchAPI } from "../api/config";
 
 export default function SummaryPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { video, summary, language } = location.state || {};
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+  // Edu Bot chat state (same behavior as TranscriptPage)
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
 
   if (!video || !summary) {
     navigate("/");
@@ -26,6 +32,46 @@ export default function SummaryPage() {
   const copySummary = () => {
     navigator.clipboard.writeText(summary);
     alert("Summary copied to clipboard!");
+  };
+
+  const handleChatSubmit = async () => {
+    if (!chatInput.trim() || !summary) return;
+
+    const userMessage = chatInput.trim();
+    setChatInput("");
+
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setChatLoading(true);
+
+    try {
+      const data = await fetchAPI("/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          message: userMessage,
+          context: summary,
+          language: language || "english"
+        })
+      });
+
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: data.response || "Sorry, I encountered an error. Please try again."
+        }
+      ]);
+    } catch (err) {
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I am currently offline. Please check your connection."
+        }
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   // Extract video ID from URL for embedding
@@ -57,7 +103,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="app" style={{display: 'grid', gridTemplateColumns: '300px 1fr', gap: 0}}>
+    <div className="app">
       {/* Left Sidebar */}
       <aside className="card-panel">
         <button
@@ -207,33 +253,106 @@ export default function SummaryPage() {
         >
           {summary}
         </div>
-
-        <div className="mt-4 d-flex gap-2 justify-content-center flex-wrap">
-          <button
-            className="btn btn-primary"
-            onClick={() => navigate("/listen", { state: { video, summary, language } })}
-          >
-            <i className="fa-solid fa-headphones me-2"></i>
-            Listen to Summary
-          </button>
-          
-          <button
-            className="btn btn-success"
-            onClick={() => navigate("/quiz", { state: { video, summary, language } })}
-          >
-            <i className="fa-solid fa-question-circle me-2"></i>
-            Take Quiz
-          </button>
-          
-          <button
-            className="btn btn-info"
-            onClick={() => navigate("/flashcards-summary", { state: { video, summary, language } })}
-          >
-            <i className="fa-solid fa-layer-group me-2"></i>
-            Generate Flashcards
-          </button>
-        </div>
       </main>
+
+      {/* Right Panel - Edu Bot */}
+      <aside className="card-panel" style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+        <div className="panel-section" style={{borderBottom: '2px solid #e9ecef', paddingBottom: '1rem', marginBottom: '1rem'}}>
+          <h6 style={{marginBottom: '0.5rem'}}>
+            <i className="fa-solid fa-robot me-2" style={{color: '#667eea'}}></i>
+            Edu Bot
+          </h6>
+          <small className="text-muted" style={{fontSize: '0.75rem'}}>
+            <i className="fa-solid fa-circle text-success me-1" style={{fontSize: '0.5rem'}}></i>
+            Your AI Learning Assistant
+          </small>
+        </div>
+
+        {/* Chat Messages */}
+        <div
+          className="panel-section"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            maxHeight: 'calc(100vh - 350px)',
+            marginBottom: '1rem',
+            paddingRight: '0.5rem'
+          }}
+        >
+          {chatMessages.length === 0 ? (
+            <div className="text-center text-muted py-4">
+              <i className="fa-solid fa-comments" style={{fontSize: '2rem', opacity: 0.3, marginBottom: '1rem', display: 'block'}}></i>
+              <small>Ask me anything about the summary or video content!</small>
+            </div>
+          ) : (
+            chatMessages.map((msg, idx) => (
+              <div
+                key={idx}
+                className="mb-3"
+                style={{
+                  textAlign: msg.role === 'user' ? 'right' : 'left'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-block',
+                    maxWidth: '85%',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    backgroundColor: msg.role === 'user' ? '#667eea' : '#f8f9fa',
+                    color: msg.role === 'user' ? 'white' : '#333',
+                    fontSize: '0.85rem',
+                    lineHeight: '1.5',
+                    wordWrap: 'break-word'
+                  }}
+                >
+                  {msg.role === 'assistant' && (
+                    <div style={{marginBottom: '0.25rem', opacity: 0.7, fontSize: '0.75rem'}}>
+                      <i className="fa-solid fa-robot me-1"></i>Edu Bot
+                    </div>
+                  )}
+                  {msg.content}
+                </div>
+              </div>
+            ))
+          )}
+          {chatLoading && (
+            <div className="text-muted" style={{fontSize: '0.85rem'}}>
+              <i className="fa-solid fa-circle-notch fa-spin me-2"></i>
+              Edu Bot is thinking...
+            </div>
+          )}
+        </div>
+
+        {/* Chat Input */}
+        <div className="panel-section" style={{marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid #e9ecef'}}>
+          <div className="input-group input-group-sm">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Ask about the summary..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !chatLoading && chatInput.trim()) {
+                  handleChatSubmit();
+                }
+              }}
+              disabled={chatLoading}
+              style={{fontSize: '0.85rem'}}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={handleChatSubmit}
+              disabled={chatLoading || !chatInput.trim()}
+              style={{fontSize: '0.85rem'}}
+            >
+              <i className="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+
+      </aside>
     </div>
   );
 }
