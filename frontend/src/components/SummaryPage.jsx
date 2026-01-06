@@ -1,7 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SplitText from "./SplitText";
 import { fetchAPI } from "../api/config";
+
+const VOICE_LANGUAGE_CODES = {
+  english: "en-IN",
+  hindi: "hi-IN",
+  tamil: "ta-IN",
+  telugu: "te-IN",
+  kannada: "kn-IN",
+};
 
 export default function SummaryPage() {
   const location = useLocation();
@@ -13,6 +21,8 @@ export default function SummaryPage() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const voiceRecognitionRef = useRef(null);
 
   if (!video || !summary) {
     navigate("/");
@@ -34,10 +44,11 @@ export default function SummaryPage() {
     alert("Summary copied to clipboard!");
   };
 
-  const handleChatSubmit = async () => {
-    if (!chatInput.trim() || !summary) return;
+  const handleChatSubmit = async (overrideMessage) => {
+    const raw = overrideMessage ?? chatInput;
+    if (!raw.trim() || !summary) return;
 
-    const userMessage = chatInput.trim();
+    const userMessage = raw.trim();
     setChatInput("");
 
     // Add user message to chat
@@ -71,6 +82,51 @@ export default function SummaryPage() {
       ]);
     } finally {
       setChatLoading(false);
+    }
+  };
+
+  const startVoiceChat = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+
+    const langKey = (language || "english").toLowerCase();
+    const langCode = VOICE_LANGUAGE_CODES[langKey] || "en-IN";
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = langCode;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0]?.[0]?.transcript || "";
+      const text = transcript.trim();
+      setIsVoiceRecording(false);
+      if (text) {
+        await handleChatSubmit(text);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Voice chat error:", event.error);
+      setIsVoiceRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsVoiceRecording(false);
+    };
+
+    voiceRecognitionRef.current = recognition;
+    setIsVoiceRecording(true);
+    recognition.start();
+  };
+
+  const stopVoiceChat = () => {
+    const recognition = voiceRecognitionRef.current;
+    if (recognition) {
+      recognition.stop();
     }
   };
 
@@ -342,8 +398,18 @@ export default function SummaryPage() {
               style={{fontSize: '0.85rem'}}
             />
             <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={isVoiceRecording ? stopVoiceChat : startVoiceChat}
+              disabled={chatLoading}
+              style={{fontSize: '0.85rem'}}
+              title="Speak your question"
+            >
+              <i className={`fa-solid ${isVoiceRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
+            </button>
+            <button
               className="btn btn-primary"
-              onClick={handleChatSubmit}
+              onClick={() => handleChatSubmit()}
               disabled={chatLoading || !chatInput.trim()}
               style={{fontSize: '0.85rem'}}
             >

@@ -47,8 +47,8 @@
 - **Backend Routes**: 12 API endpoints
 - **Services**: 15+ processing modules
 - **Frontend Components**: 10+ React components
-- **Python Scripts**: 6 ML processing scripts
-- **Database Models**: 8 MongoDB schemas
+- **Python Scripts**: 6 ML processing scripts (5 inside `backend/services` + 1 downloader in `backend/`)
+- **Database Models**: 9 MongoDB schemas
 
 ---
 
@@ -234,95 +234,102 @@ Educational Video Input
 ### Directory Structure
 
 ```
-devp-mode-evista-main/
+project-root/
 │
-├── backend/                          # Node.js + Express API
-│   ├── routes/                       # 12 API endpoints
-│   │   ├── youtube.js               # YouTube search (curated educational channels)
-│   │   ├── vimeo.js                 # Vimeo search (placeholder, returns 501)
-│   │   ├── transcript.js            # Smart transcription (duration-based)
-│   │   ├── analyze.js               # Complete video analysis
-│   │   ├── chat.js                  # AI chatbot with context
-│   │   ├── quiz.js                  # Quiz generation (12 questions)
-│   │   ├── flashcard.js             # Flashcard creation (10 cards)
-│   │   ├── equations.js             # Math equation extraction
-│   │   ├── translate.js             # Translation API route (placeholder, returns 501)
-│   │   ├── auth.js                  # User authentication (JWT)
-│   │   ├── user.js                  # User profile & dashboard
-│   │   └── search.js                # Unified YouTube search (educational focus)
-│   │
-│   ├── services/                    # Core processing logic
-│   │   ├── localWhisper.js          # Whisper orchestrator
-│   │   ├── geminiService.js         # Gemini AI integration
-│   │   ├── visualAnalyzer.js        # Frame analysis (Gemini Vision)
-│   │   ├── audioAnalyzer.js         # Speech detection (Librosa)
-│   │   ├── equationExtractor.js     # LaTeX extraction (Pix2TeX)
-│   │   ├── enhancedSummarizer.js    # Multi-modal summarization
-│   │   ├── badgeService.js          # Achievement system
-│   │   ├── videoDurationChecker.js  # Duration-based decisions
-│   │   │
-│   │   └── Python ML Services/
-│   │       ├── whisper_service_simple.py    # faster-whisper engine
-│   │       ├── audioAnalyzer.py             # Librosa analysis
-│   │       ├── frame_extractor.py           # OpenCV frame extraction
-│   │       ├── equation_ocr.py              # Pix2TeX OCR
-│   │       ├── equation_transcript_merger.py # Timeline alignment
-│   │       ├── audioExtractorYtDlp.js       # yt-dlp wrapper
-│   │       └── videoDownloader.js           # Video download
-│   │
-│   ├── models/                      # MongoDB schemas
-│   │   ├── User.js                  # User profile & stats
-│   │   ├── Summary.js               # Generated summaries
-│   │   ├── ChatSession.js           # Chat sessions
-│   │   ├── ChatMessage.js           # Chat messages
-│   │   ├── Quiz.js                  # Quiz questions
-│   │   ├── QuizAttempt.js           # Quiz attempts & scores
-│   │   ├── Badge.js                 # Badge definitions
-│   │   └── UserBadge.js             # User achievements
-│   │
-│   ├── middleware/
-│   │   └── auth.js                  # JWT authentication middleware
-│   │
+├── backend/                          # Node.js + Express API and Python ML services
+│   ├── .env                          # Environment variables for backend (local, not committed)
+│   ├── .gitignore                    # Backend-specific ignore rules
 │   ├── config/
-│   │   └── database.js              # MongoDB connection
-│   │
-│   ├── server.js                    # Express app setup
-│   ├── requirements.txt              # Python dependencies
-│   └── package.json                 # Node dependencies
+│   │   └── database.js               # MongoDB connection helper
+│   ├── middleware/
+│   │   └── auth.js                   # JWT authentication & token helpers
+│   ├── models/                       # MongoDB schemas (9 collections)
+│   │   ├── User.js                   # User profile, preferences and stats
+│   │   ├── Summary.js                # Generated summaries and metadata
+│   │   ├── ChatSession.js            # Chat session containers
+│   │   ├── ChatMessage.js            # Individual chat turns
+│   │   ├── Quiz.js                   # Stored quizzes (if persisted)
+│   │   ├── QuizAttempt.js            # Quiz attempts and scores
+│   │   ├── Badge.js                  # BadgeDefinition catalog
+│   │   ├── UserBadge.js              # Earned badges per user
+│   │   └── Video.js                  # Cached video metadata (YouTube/Vimeo/local)
+│   ├── routes/                       # HTTP API endpoints
+│   │   ├── youtube.js                # Curated YouTube search (educational channels only)
+│   │   ├── vimeo.js                  # Vimeo route placeholder (always 501 Not Implemented)
+│   │   ├── search.js                 # Unified YouTube search (POST /api/search)
+│   │   ├── transcript.js             # Smart transcription + timeframe-based summaries + SSE progress
+│   │   ├── analyze.js                # Complete video analysis (audio + visuals + optional equations)
+│   │   ├── chat.js                   # Edu Bot chat endpoint (optional auth + persistence)
+│   │   ├── quiz.js                   # Quiz generation + /submit scoring endpoint
+│   │   ├── flashcard.js              # Flashcard generation (topic- or summary-based)
+│   │   ├── equations.js              # Equation extraction + frame extraction + merge helpers
+│   │   ├── translate.js              # Translation placeholder (501; LibreTranslate planned)
+│   │   ├── auth.js                   # User authentication (register/login, JWT issuing)
+│   │   └── user.js                   # Dashboard, histories and badges APIs
+│   ├── services/                     # Node service layer (bridges Python + external APIs)
+│   │   ├── audioAnalyzer.js           # Wrapper around Python audioAnalyzer.py (Librosa-based speech detection)
+│   │   ├── audioExtractorYtDlp.js     # Fast audio-only extraction via yt-dlp
+│   │   ├── badgeService.js            # Badge initialization + stats updates
+│   │   ├── enhancedSummarizer.js      # Multi-modal (audio + visual) summaries via Gemini
+│   │   ├── equationExtractor.js       # Frame extraction + equation OCR + transcript timeline merge
+│   │   ├── geminiService.js           # Core Gemini helpers (text summary, quiz, flashcards)
+│   │   ├── localWhisper.js            # Node bridge to Python faster-whisper service
+│   │   ├── videoDownloader.js         # yt-dlp based video download + FFmpeg audio extraction
+│   │   ├── videoDurationChecker.js    # Fast duration probe via yt-dlp
+│   │   ├── visualAnalyzer.js          # Gemini Vision analysis of representative frames
+│   │   ├── visualOnlySummarizer.js    # Fallback visual-only summary when no transcript is available
+│   │   ├── temp/                      # Temporary frame folders (runtime only)
+│   │   ├── whisper_models/            # Cached Whisper model weights (downloaded once)
+│   │   ├── audioAnalyzer.py           # Librosa-based speech detection implementation
+│   │   ├── equation_ocr.py            # Pix2TeX + Tesseract equation OCR pipeline
+│   │   ├── equation_transcript_merger.py # Equation + transcript timeline merger
+│   │   └── frame_extractor.py         # OpenCV-based frame extraction (interval/scene/smart modes)
+│   ├── utils/
+│   │   ├── constants.js               # LANGUAGE_MAP and EDUCATIONAL_CHANNELS list
+│   │   ├── helpers.js                 # Duration parsing, language helpers, validation, error handler
+│   │   └── tempManager.js             # Shared temp directory creation/cleanup
+│   ├── temp/                          # Backend-level temp directory (safe to clear)
+│   ├── download_whisper_model.py      # Optional one-time Whisper model downloader
+│   ├── models.json                    # JSON export of models (for documentation/testing)
+│   ├── requirements.txt               # Python dependencies (Whisper, Librosa, OpenCV, Pix2TeX, etc.)
+│   ├── package.json                   # Backend Node dependencies & scripts
+│   └── server.js                      # Express app bootstrap and route wiring
 │
-├── frontend/                        # React + Vite SPA
-│   ├── src/
-│   │   ├── components/              # React components
-│   │   │   ├── HomePage.jsx         # Landing & search
-│   │   │   ├── TranscriptPage.jsx   # Video analysis & results
-│   │   │   ├── SummaryPage.jsx      # Summary display
-│   │   │   ├── QuizPage.jsx         # Quiz interface (dedicated page)
-│   │   │   ├── FlashcardPage.jsx    # Flashcard creation
-│   │   │   ├── FlashcardSummaryPage.jsx # Study flashcards
-│   │   │   ├── ProfilePage.jsx      # User dashboard
-│   │   │   ├── LoginPage.jsx        # Authentication
-│   │   │   ├── SearchBar.jsx        # Reusable search
-│   │   │   ├── VideoList.jsx        # Video results grid
-│   │   │   ├── SplitText.jsx        # GSAP animations
-│   │   │   ├── ListenPage.jsx       # Audio playback (5 languages: English, Hindi, Tamil, Telugu, Kannada)
-│   │   │   └── ProfilePopup.jsx     # User profile popup (all pages)
-│   │   │
-│   │   ├── api/                     # API client
-│   │   │   ├── config.js            # Base URL & fetch wrapper
-│   │   │   └── videoSearch.js       # API calls
-│   │   │
-│   │   ├── App.jsx                  # Router configuration
-│   │   ├── main.jsx                 # React entry point
-│   │   └── index.css                # Global styles
-│   │
-│   ├── vite.config.js               # Vite configuration
-│   └── package.json                 # Dependencies
+├── frontend/                         # React + Vite single-page application
+│   ├── index.html                     # HTML shell (Bootstrap, fonts, root div)
+│   ├── vite.config.js                 # Vite dev server and build configuration
+│   ├── package.json                   # Frontend dependencies & scripts
+│   └── src/
+│       ├── api/
+│       │   ├── config.js              # API_BASE_URL + fetchAPI wrapper (adds JWT, timeout)
+│       │   └── videoSearch.js         # Client for /youtube and /vimeo backend search routes
+│       ├── components/
+│       │   ├── HomePage.jsx            # Landing screen, search or paste URL entry
+│       │   ├── TranscriptPage.jsx      # Main analysis flow + SSE progress + Edu Bot chat
+│       │   ├── SummaryPage.jsx         # Summary-only view with Edu Bot side panel
+│       │   ├── QuizPage.jsx            # Dedicated quiz-taking and review interface
+│       │   ├── FlashcardPage.jsx       # Topic-based flashcard generator
+│       │   ├── FlashcardSummaryPage.jsx # Flashcards generated from a video summary
+│       │   ├── ListenPage.jsx          # Browser text-to-speech playback (hi/ta/te/kn/en)
+│       │   ├── ProfilePage.jsx         # Dashboard, badges and recent activity tabs
+│       │   ├── LoginPage.jsx           # Login / registration UI
+│       │   ├── SearchBar.jsx           # Reusable search + VideoList demo
+│       │   ├── VideoList.jsx           # Paginated video cards with "View Transcript" action
+│       │   ├── SplitText.jsx           # GSAP-based animated text component
+│       │   └── shared/
+│       │       ├── FlashcardDisplay.jsx # Reusable flip-card UI for multiple pages
+│       │       └── ProfilePopup.jsx   # Floating profile button with live stats popup
+│       ├── App.jsx                     # Router and layout (ProfilePopup + routes)
+│       ├── main.jsx                    # React entry point
+│       └── index.css                   # Global theme, layout and component styles
 │
-├── install_whisper.bat              # Windows setup script
-├── package.json                     # Monorepo config
-├── README.md                        # Quick start guide
-├── PROJECT_DOCUMENTATION.txt        # Technical docs
-└── PERSONALIZATION_GUIDE.md         # User profile guide
+├── COMPLETE_PROJECT_EXPLANATION.md   # Markdown project explanation (this document)
+├── COMPLETE_PROJECT_EXPLANATION.txt  # Plain-text version for printing/report submission
+├── install_whisper.bat               # Windows helper to install Python deps + Whisper model
+├── package.json                      # Monorepo root (workspaces: frontend, backend)
+├── package-lock.json                 # Locked dependency tree
+├── report.pdf                        # Final academic/technical report
+└── work_distribution.txt             # Team member responsibilities and ownership
 ```
 
 ---

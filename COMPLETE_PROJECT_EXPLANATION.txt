@@ -33,7 +33,7 @@ comprehensive learning materials through intelligent multi-modal analysis.
 
 Core Capabilities:
 
-- Video Search: YouTube & Vimeo integration with 115+ educational channels
+- Video Search: YouTube search with curated educational channels. A Vimeo route exists but is currently a PLACEHOLDER that returns HTTP 501 (integration planned).
 - Speech-to-Text: 5 Indian languages (Tamil, Telugu, Kannada, Hindi, English)
 - Visual Analysis: AI-powered frame analysis using Gemini Vision
 - Equation Extraction: Mathematical equation recognition via Pix2TeX OCR
@@ -41,7 +41,7 @@ Core Capabilities:
 - Timeframe-Based Summarization: Ability to summarize either the entire video or only a selected time range (for example, 00:05:00–00:15:00), which saves time and memory for long lectures.
 - Interactive Learning: AI chatbot, auto-generated quizzes, and flashcards
 - User Personalization: Complete user profiles with progress tracking and achievements
-- Multi-language Support: 100+ languages for translation
+- Multi-language Support: Translation pipeline designed for 100+ languages via LibreTranslate, but the /api/translate endpoint is a PLACEHOLDER (returns 501 Not Implemented in this version).
 
 Project Statistics:
 
@@ -49,8 +49,8 @@ Project Statistics:
 - Backend Routes: 12 API endpoints
 - Services: 15+ processing modules
 - Frontend Components: 10+ React components
-- Python Scripts: 8 ML processing scripts
-- Database Models: 8 MongoDB schemas
+- Python Scripts: 6 ML processing scripts (5 inside backend/services + 1 downloader in backend/)
+- Database Models: 9 MongoDB schemas
 
 ================================================================================
 2. PROBLEM STATEMENT & SOLUTION
@@ -234,94 +234,102 @@ System Architecture Diagram:
 
 Directory Structure:
 
-devp-mode-evista-main/
+project-root/
 |
-├── backend/                          # Node.js + Express API
-│   ├── routes/                       # 12 API endpoints
-│   │   ├── youtube.js               # YouTube search (115+ channels)
-│   │   ├── vimeo.js                 # Vimeo search
-│   │   ├── transcript.js            # Smart transcription (duration-based)
-│   │   ├── analyze.js               # Complete video analysis
-│   │   ├── chat.js                  # AI chatbot with context
-│   │   ├── quiz.js                  # Quiz generation (12 questions)
-│   │   ├── flashcard.js             # Flashcard creation (10 cards)
-│   │   ├── equations.js             # Math equation extraction
-│   │   ├── translate.js             # Multi-language translation
-│   │   ├── auth.js                  # User authentication (JWT)
-│   │   ├── user.js                  # User profile & dashboard
-│   │   └── search.js                # Unified search
-│   │
-│   ├── services/                    # Core processing logic
-│   │   ├── localWhisper.js          # Whisper orchestrator
-│   │   ├── geminiService.js         # Gemini AI integration
-│   │   ├── visualAnalyzer.js        # Frame analysis (Gemini Vision)
-│   │   ├── audioAnalyzer.js         # Speech detection (Librosa)
-│   │   ├── equationExtractor.js     # LaTeX extraction (Pix2TeX)
-│   │   ├── enhancedSummarizer.js    # Multi-modal summarization
-│   │   ├── badgeService.js          # Achievement system
-│   │   ├── videoDurationChecker.js  # Duration-based decisions
-│   │   │
-│   │   └── Python ML Services/
-│   │       ├── whisper_service_simple.py    # faster-whisper engine
-│   │       ├── audioAnalyzer.py             # Librosa analysis
-│   │       ├── frame_extractor.py           # OpenCV frame extraction
-│   │       ├── equation_ocr.py              # Pix2TeX OCR
-│   │       ├── equation_transcript_merger.py # Timeline alignment
-│   │       ├── audioExtractorYtDlp.js       # yt-dlp wrapper
-│   │       └── videoDownloader.js           # Video download
-│   │
-│   ├── models/                      # MongoDB schemas
-│   │   ├── User.js                  # User profile & stats
-│   │   ├── Summary.js               # Generated summaries
-│   │   ├── ChatSession.js           # Chat sessions
-│   │   ├── ChatMessage.js           # Chat messages
-│   │   ├── Quiz.js                  # Quiz questions
-│   │   ├── QuizAttempt.js           # Quiz attempts & scores
-│   │   ├── Badge.js                 # Badge definitions
-│   │   └── UserBadge.js             # User achievements
-│   │
-│   ├── middleware/
-│   │   └── auth.js                  # JWT authentication middleware
-│   │
+├── backend/                          # Node.js + Express API and Python ML services
+│   ├── .env                          # Environment variables for backend (local, not committed)
+│   ├── .gitignore                    # Backend-specific ignore rules
 │   ├── config/
-│   │   └── database.js              # MongoDB connection
-│   │
-│   ├── server.js                    # Express app setup
-│   ├── requirements.txt              # Python dependencies
-│   └── package.json                 # Node dependencies
-│
-├── frontend/                        # React + Vite SPA
-│   ├── src/
-│   │   ├── components/              # React components
-│   │   │   ├── HomePage.jsx         # Landing & search
-│   │   │   ├── TranscriptPage.jsx   # Video analysis & results
-│   │   │   ├── SummaryPage.jsx      # Summary display
-│   │   │   ├── QuizPage.jsx         # Quiz interface
-│   │   │   ├── FlashcardPage.jsx    # Flashcard creation
-│   │   │   ├── FlashcardSummaryPage.jsx # Study flashcards
-│   │   │   ├── ProfilePage.jsx      # User dashboard
-│   │   │   ├── LoginPage.jsx        # Authentication
-│   │   │   ├── SearchBar.jsx        # Reusable search
-│   │   │   ├── VideoList.jsx        # Video results grid
-│   │   │   ├── SplitText.jsx        # GSAP animations
-│   │   │   └── ListenPage.jsx       # Audio playback
-│   │   │
-│   │   ├── api/                     # API client
-│   │   │   ├── config.js            # Base URL & fetch wrapper
-│   │   │   └── videoSearch.js       # API calls
-│   │   │
-│   │   ├── App.jsx                  # Router configuration
-│   │   ├── main.jsx                 # React entry point
-│   │   └── index.css                # Global styles
-│   │
-│   ├── vite.config.js               # Vite configuration
-│   └── package.json                 # Dependencies
-│
-├── install_whisper.bat              # Windows setup script
-├── package.json                     # Monorepo config
-├── README.md                        # Quick start guide
-├── PROJECT_DOCUMENTATION.txt        # Technical docs
-└── PERSONALIZATION_GUIDE.md         # User profile guide
+│   │   └── database.js               # MongoDB connection helper
+│   ├── middleware/
+│   │   └── auth.js                   # JWT authentication & token helpers
+│   ├── models/                       # MongoDB schemas (9 collections)
+│   │   ├── User.js                   # User profile, preferences and stats
+│   │   ├── Summary.js                # Generated summaries and metadata
+│   │   ├── ChatSession.js            # Chat session containers
+│   │   ├── ChatMessage.js            # Individual chat turns
+│   │   ├── Quiz.js                   # Stored quizzes (if persisted)
+│   │   ├── QuizAttempt.js            # Quiz attempts and scores
+│   │   ├── Badge.js                  # BadgeDefinition catalog
+│   │   ├── UserBadge.js              # Earned badges per user
+│   │   └── Video.js                  # Cached video metadata (YouTube/Vimeo/local)
+│   ├── routes/                       # HTTP API endpoints
+│   │   ├── youtube.js                # Curated YouTube search (educational channels only)
+│   │   ├── vimeo.js                  # Vimeo route placeholder (always 501 Not Implemented)
+│   │   ├── search.js                 # Unified YouTube search (POST /api/search)
+│   │   ├── transcript.js             # Smart transcription + timeframe-based summaries + SSE progress
+│   │   ├── analyze.js                # Complete video analysis (audio + visuals + optional equations)
+│   │   ├── chat.js                   # Edu Bot chat endpoint (optional auth + persistence)
+│   │   ├── quiz.js                   # Quiz generation + /submit scoring endpoint
+│   │   ├── flashcard.js              # Flashcard generation (topic- or summary-based)
+│   │   ├── equations.js              # Equation extraction + frame extraction + merge helpers
+│   │   ├── translate.js              # Translation placeholder (501; LibreTranslate planned)
+│   │   ├── auth.js                   # User authentication (register/login, JWT issuing)
+│   │   └── user.js                   # Dashboard, histories and badges APIs
+│   ├── services/                     # Node service layer (bridges Python + external APIs)
+│   │   ├── audioAnalyzer.js           # Wrapper around Python audioAnalyzer.py (Librosa-based speech detection)
+│   │   ├── audioExtractorYtDlp.js     # Fast audio-only extraction via yt-dlp
+│   │   ├── badgeService.js            # Badge initialization + stats updates
+│   │   ├── enhancedSummarizer.js      # Multi-modal (audio + visual) summaries via Gemini
+│   │   ├── equationExtractor.js       # Frame extraction + equation OCR + transcript timeline merge
+│   │   ├── geminiService.js           # Core Gemini helpers (text summary, quiz, flashcards)
+│   │   ├── localWhisper.js            # Node bridge to Python faster-whisper service
+│   │   ├── videoDownloader.js         # yt-dlp based video download + FFmpeg audio extraction
+│   │   ├── videoDurationChecker.js    # Fast duration probe via yt-dlp
+│   │   ├── visualAnalyzer.js          # Gemini Vision analysis of representative frames
+│   │   ├── visualOnlySummarizer.js    # Fallback visual-only summary when no transcript is available
+│   │   ├── temp/                      # Temporary frame folders (runtime only)
+│   │   ├── whisper_models/            # Cached Whisper model weights (downloaded once)
+│   │   ├── audioAnalyzer.py           # Librosa-based speech detection implementation
+│   │   ├── equation_ocr.py            # Pix2TeX + Tesseract equation OCR pipeline
+│   │   ├── equation_transcript_merger.py # Equation + transcript timeline merger
+│   │   └── frame_extractor.py         # OpenCV-based frame extraction (interval/scene/smart modes)
+│   ├── utils/
+│   │   ├── constants.js               # LANGUAGE_MAP and EDUCATIONAL_CHANNELS list
+│   │   ├── helpers.js                 # Duration parsing, language helpers, validation, error handler
+│   │   └── tempManager.js             # Shared temp directory creation/cleanup
+│   ├── temp/                          # Backend-level temp directory (safe to clear)
+│   ├── download_whisper_model.py      # Optional one-time Whisper model downloader
+│   ├── models.json                    # JSON export of models (for documentation/testing)
+│   ├── requirements.txt               # Python dependencies (Whisper, Librosa, OpenCV, Pix2TeX, etc.)
+│   ├── package.json                   # Backend Node dependencies & scripts
+│   └── server.js                      # Express app bootstrap and route wiring
+|
+├── frontend/                         # React + Vite single-page application
+│   ├── index.html                     # HTML shell (Bootstrap, fonts, root div)
+│   ├── vite.config.js                 # Vite dev server and build configuration
+│   ├── package.json                   # Frontend dependencies & scripts
+│   └── src/
+│       ├── api/
+│       │   ├── config.js              # API_BASE_URL + fetchAPI wrapper (adds JWT, timeout)
+│       │   └── videoSearch.js         # Client for /youtube and /vimeo backend search routes
+│       ├── components/
+│       │   ├── HomePage.jsx            # Landing screen, search or paste URL entry
+│       │   ├── TranscriptPage.jsx      # Main analysis flow + SSE progress + Edu Bot chat
+│       │   ├── SummaryPage.jsx         # Summary-only view with Edu Bot side panel
+│       │   ├── QuizPage.jsx            # Dedicated quiz-taking and review interface
+│       │   ├── FlashcardPage.jsx       # Topic-based flashcard generator
+│       │   ├── FlashcardSummaryPage.jsx # Flashcards generated from a video summary
+│       │   ├── ListenPage.jsx          # Browser text-to-speech playback (hi/ta/te/kn/en)
+│       │   ├── ProfilePage.jsx         # Dashboard, badges and recent activity tabs
+│       │   ├── LoginPage.jsx           # Login / registration UI
+│       │   ├── SearchBar.jsx           # Reusable search + VideoList demo
+│       │   ├── VideoList.jsx           # Paginated video cards with "View Transcript" action
+│       │   ├── SplitText.jsx           # GSAP-based animated text component
+│       │   └── shared/
+│       │       ├── FlashcardDisplay.jsx # Reusable flip-card UI for multiple pages
+│       │       └── ProfilePopup.jsx   # Floating profile button with live stats popup
+│       ├── App.jsx                     # Router and layout (ProfilePopup + routes)
+│       ├── main.jsx                    # React entry point
+│       └── index.css                   # Global theme, layout and component styles
+|
+├── COMPLETE_PROJECT_EXPLANATION.md   # Markdown project explanation (primary)
+├── COMPLETE_PROJECT_EXPLANATION.txt  # Plain-text explanation (this file)
+├── install_whisper.bat               # Windows helper to install Python deps + Whisper model
+├── package.json                      # Monorepo root (workspaces: frontend, backend)
+├── package-lock.json                 # Locked dependency tree
+├── report.pdf                        # Final academic/technical report
+└── work_distribution.txt             # Team member responsibilities and ownership
 
 ================================================================================
 5. TECHNOLOGY STACK
@@ -352,24 +360,24 @@ AI/ML Stack:
 
 Technology              | Purpose                | Why Chosen
 ------------------------|------------------------|----------------------------------
-faster-whisper          | Speech-to-text         | 10x faster than Whisper, 5 Indian languages
-Google Gemini 2.0 Flash | Text generation        | Fast, accurate, free tier, vision support
+faster-whisper          | Speech-to-text         | GPU-optimized transcription for 5 Indian languages
+Google Gemini 2.5 Flash | Text generation        | Fast, accurate, free tier, vision support
 Gemini Vision API       | Image analysis         | State-of-the-art visual understanding
 Pix2TeX                 | LaTeX OCR              | Specialized for mathematical equations
 Librosa                 | Audio analysis         | Scientific feature extraction
 OpenCV (cv2)            | Video processing       | Frame extraction, scene detection
 yt-dlp                  | Video download         | Universal downloader, 1000+ sites
 FFmpeg                  | Audio processing       | Industry standard media manipulation
-LibreTranslate          | Translation            | Free, open-source, 100+ languages
+LibreTranslate          | Translation            | Free, open-source, 100+ languages (planned integration; not wired in this version)
 
 External APIs:
 
 API                     | Purpose        | Rate Limits
 ------------------------|----------------|----------------------------------
 YouTube Data API v3     | Video search   | 10,000 quota units/day
-Vimeo API               | Video search   | Varies by plan
+Vimeo API               | (planned) video search   | Not yet used in current backend (route returns 501)
 Google Gemini API       | AI generation  | Free tier available
-LibreTranslate          | Translation    | Free, no API key
+LibreTranslate          | (planned) Translation    | Design target; current /api/translate route returns 501
 
 ================================================================================
 6. FRONTEND IMPLEMENTATION
@@ -447,15 +455,15 @@ Key Frontend Features:
 
 1. YouTube Search (/api/youtube)
    GET /api/youtube?q=photosynthesis
-   Response: { videos: [...] }
-   - Searches 115+ educational channels
+   Response: { items: [...] }
+   - Searches curated educational channels only
    - Filters by duration and relevance
-   - Extracts thumbnails and metadata
+   - Extracts thumbnails, durations and metadata
 
 2. Vimeo Search (/api/vimeo)
-   - Similar to YouTube search
-   - Vimeo API integration
-   - Educational content filtering
+   - Route present as a placeholder
+   - Always returns HTTP 501 with { error: "Vimeo API integration not implemented" }
+   - Integration is planned for a future version
 
 3. Smart Transcript (/api/transcript)
    POST /api/transcript

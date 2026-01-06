@@ -1,7 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import SplitText from "./SplitText";
 import { fetchAPI } from "../api/config";
+
+const VOICE_LANGUAGE_CODES = {
+  english: "en-IN",
+  hindi: "hi-IN",
+  tamil: "ta-IN",
+  telugu: "te-IN",
+  kannada: "kn-IN",
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -13,6 +21,8 @@ export default function HomePage() {
   const [darkMode, setDarkMode] = useState(false);
   const [inputMode, setInputMode] = useState("search");
   const [user, setUser] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -21,13 +31,14 @@ export default function HomePage() {
     }
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (overrideQuery) => {
+    const term = (overrideQuery ?? searchQuery).trim();
+    if (!term) return;
     setLoading(true);
     try {
       const data = await fetchAPI("/search", {
         method: "POST",
-        body: JSON.stringify({ query: searchQuery })
+        body: JSON.stringify({ query: term })
       });
       setVideos(data.videos || []);
     } catch (error) {
@@ -35,6 +46,51 @@ export default function HomePage() {
       alert("Failed to search videos");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice search is not supported in this browser.");
+      return;
+    }
+
+    const langCode = VOICE_LANGUAGE_CODES[selectedLanguage] || "en-IN";
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = langCode;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0]?.[0]?.transcript || "";
+      const text = transcript.trim();
+      setIsRecording(false);
+      if (text) {
+        setSearchQuery(text);
+        await handleSearch(text);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Voice search error:", event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+    recognition.start();
+  };
+
+  const stopVoiceSearch = () => {
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognition.stop();
     }
   };
 
@@ -200,11 +256,46 @@ export default function HomePage() {
                   style={{
                     border: '2px solid #e9ecef',
                     borderLeft: 'none',
-                    borderRadius: '0 12px 12px 0',
+                    borderRadius: '0',
                     fontSize: '1.1rem',
                     padding: '0.75rem 1.5rem'
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={isRecording ? stopVoiceSearch : startVoiceSearch}
+                  className="btn"
+                  style={{
+                    background: isRecording ? '#d93025' : '#34a853',
+                    color: 'white',
+                    borderRadius: '0 12px 12px 0',
+                    border: 'none',
+                    padding: '0 1.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Voice search"
+                >
+                  <i className={`fa-solid ${isRecording ? 'fa-stop' : 'fa-microphone'}`}></i>
+                </button>
+              </div>
+              <div className="d-flex justify-content-end mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <i className="fa-solid fa-language" style={{ color: 'white' }}></i>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="form-select form-select-sm"
+                    style={{ maxWidth: '180px' }}
+                  >
+                    <option value="english">English</option>
+                    <option value="hindi">Hindi</option>
+                    <option value="tamil">Tamil</option>
+                    <option value="telugu">Telugu</option>
+                    <option value="kannada">Kannada</option>
+                  </select>
+                </div>
               </div>
               <button
                 className="btn btn-primary btn-lg w-100"

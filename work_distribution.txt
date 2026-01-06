@@ -9,6 +9,14 @@ Primary Ownership (Backend)
   - Handle user registration, login, and token-based access control.
   - Own the User model (User.js), including stats and preferences fields.
 
+- Core Application APIs (non-ML business logic)
+  - Own user-facing domain routes that orchestrate services but do not implement ML themselves:
+    - /api/user/*  (user dashboard, summaries, quiz history, badges exposure)
+    - /api/quiz/*  (quiz generation + /submit, working together with Gemini services and Quiz/QuizAttempt models).
+    - /api/flashcard (topic/summary-based flashcard generation using Gemini services).
+    - /api/chat      (Edu Bot HTTP layer, JWT decoding, persistence in ChatSession/ChatMessage).
+  - Ensure these routes call the appropriate service-layer functions and models safely and efficiently.
+
 - User Dashboard & History
   - Own /api/user/dashboard in backend/routes/user.js.
   - Aggregate and return user stats, recentSummaries, recentQuizzes, recentChats, and badges.
@@ -22,6 +30,10 @@ Primary Ownership (Backend)
 - Badge & Stats Integration
   - Integrate calls to updateUserStats() wherever needed (summary generation, quiz completion, chat usage).
   - Coordinate with mem2 (who owns badgeService.js) for any changes to stats or badge logic.
+
+- Search & Helper APIs
+  - Coordinate implementation of /api/search (unified educational YouTube search) and ensure it uses helper utilities (parseDuration, educational keyword augmentation) consistently.
+  - Work with mem2 on any changes in YouTube-related logic that impact downstream analysis.
 
 Secondary Responsibilities
 - Review backend-related pull requests from mem2 and mem3 that touch user/quiz APIs.
@@ -53,6 +65,17 @@ Primary Ownership (ML/Services)
     - videoDurationChecker.js
   - Ensure visual-only and enhanced summaries work for various input types.
 
+- Multi-Modal Pipelines & Equation Extraction
+  - Design and maintain the core analysis pipelines used by:
+    - /api/transcript        (smart transcript + optional visual enrichment for short videos)
+    - /api/analyze-video     (complete analysis: audio + visuals + optional equations)
+    - /api/equations/*       (frame extraction, equation OCR, transcript timeline merge).
+  - Own and evolve the supporting services:
+    - equationExtractor.js   (frame_extractor.py, equation_ocr.py, equation_transcript_merger.py bridge).
+    - audioAnalyzer.js / audioAnalyzer.py (Librosa-based speech detection).
+    - videoDownloader.js and audioExtractorYtDlp.js (yt-dlp + FFmpeg-based media pipeline).
+  - Coordinate closely with mem1 so that API responses (summary, equations, merged timeline) stay stable for the frontend and database models.
+
 Secondary Responsibilities
 - Write and maintain ML-related documentation (e.g., GPU_ACCELERATION_SETUP.md and ML sections in COMPLETE_PROJECT_EXPLANATION docs).
 - Help mem1 with performance investigation when issues come from heavy ML pipelines.
@@ -64,13 +87,19 @@ MEMBER: mem3 - Frontend UI/UX (React)
 Primary Ownership (Frontend)
 - Core Pages & Routing
   - Own main React pages:
-    - TranscriptPage.jsx
-    - QuizPage.jsx
-    - ListenPage.jsx
-    - Auth/landing pages as applicable.
+    - HomePage.jsx                (landing, YouTube educational search, paste-URL flow).
+    - TranscriptPage.jsx          (end-to-end analysis UI, SSE progress, timeframe selector, Edu Bot chat).
+    - SummaryPage.jsx             (dedicated summary reading view + Edu Bot panel).
+    - QuizPage.jsx                (quiz taking, review, score presentation).
+    - FlashcardPage.jsx           (topic-based flashcard generator UI).
+    - FlashcardSummaryPage.jsx    (summary-based flashcard study UI).
+    - ListenPage.jsx              (browser TTS player for 5 supported languages).
+    - ProfilePage.jsx             (dashboard, badges, history tabs).
+    - LoginPage.jsx               (auth forms and flows).
   - Ensure navigation flow:
     - Summary → Quiz (/quiz route with dedicated quiz page).
     - Summary → Listen (audio playback with limited 5 supported languages).
+    - Transcript/Summary → Flashcards (both topic and summary-based entry points).
 
 - Profile & History UI
   - Own ProfilePage.jsx:
@@ -79,10 +108,14 @@ Primary Ownership (Frontend)
     - Implementation of the Refresh button to re-fetch dashboard data.
 
 - Shared UI Components
-  - Own frontend/src/components/shared/ProfilePopup.jsx:
-    - Floating profile button and popup layout.
-    - Live stats fetching from /user/dashboard whenever popup is opened.
-    - Visual polish, animations, and responsive behavior.
+  - Own shared components used across multiple pages:
+    - frontend/src/components/shared/ProfilePopup.jsx:
+      - Floating profile button and popup layout.
+      - Live stats fetching from /user/dashboard whenever popup is opened.
+      - Visual polish, animations, and responsive behavior.
+    - frontend/src/components/shared/FlashcardDisplay.jsx:
+      - Reusable flip-card UI for FlashcardPage, FlashcardSummaryPage and any future flashcard usage.
+    - HomePage search + VideoList integration, including the “View Transcript” call-to-action.
 
 Secondary Responsibilities
 - Handle frontend error states and loading indicators for all major API calls.
@@ -116,9 +149,10 @@ Primary Ownership
 
 - Documentation
   - Own and maintain:
-    - PROJECT_DOCUMENTATION.txt
     - COMPLETE_PROJECT_EXPLANATION.md
     - COMPLETE_PROJECT_EXPLANATION.txt
+    - work_distribution.txt
+    - report.pdf (final report / annexures, if used for submission)
   - Keep version numbers, recent modifications, and feature descriptions in sync with the implemented code.
 
 Secondary Responsibilities
